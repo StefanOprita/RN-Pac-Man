@@ -1,6 +1,13 @@
 import gym
 import numpy as np
 from gym.envs.classic_control import rendering
+import hyperparameters as hp
+from Models.Model1 import Model1, PacManModel
+
+from ReinforcementLearning.LearningStrategy import LearningStrategy
+from ReinforcementLearning.ClassicLearning import ClassicLearning
+
+import tensorflow as tf
 
 
 def repeat_upsample(rgb_array, k=1, repeat_times=1):
@@ -14,24 +21,45 @@ def repeat_upsample(rgb_array, k=1, repeat_times=1):
     return np.repeat(np.repeat(rgb_array, k, axis=0), repeat_times, axis=1)
 
 
-def main():
-    viewer = rendering.SimpleImageViewer()
-    env = gym.make('MsPacman-v0')
-    env.reset()
+def train_model(env, model: PacManModel, strategy: LearningStrategy):
+    strategy.set_model(model)
 
-    for i_episode in range(20):
+    viewer = rendering.SimpleImageViewer()
+    for i_episode in range(hp.number_of_episodes):
         observation = env.reset()
-        for t in range(1000):
+        strategy.beginning_of_episode()
+        done = False
+        total_reward = 0
+        while not done:
             rgb = env.render('rgb_array')
             upscale = repeat_upsample(rgb, 4, 4)
             viewer.imshow(upscale)
 
-            print(observation.shape)
-            action = 0
+            strategy.before_action()
+
+            action = strategy.get_next_action(observation)
+
+            old_state = np.copy(observation)
             observation, reward, done, info = env.step(action)
+            total_reward += reward
+            strategy.add_record(old_state=old_state, action=action, reward=reward, new_state=observation)
+
+            strategy.after_action()
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
+        strategy.end_of_episode()
+        print(f'The total reward was {reward}')
+
+
+def main():
+    env = gym.make('MsPacman-v0')
+    env.reset()
+    test_model = Model1()
+    strategy = ClassicLearning()
+
+    train_model(env, test_model, strategy)
+
     env.close()
 
 

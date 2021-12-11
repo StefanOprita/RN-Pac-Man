@@ -8,3 +8,5 @@ pip install gym[atari, accept-rom-license]
 pip install pyglet
 
 pip install keras
+
+pip install tensorflow
