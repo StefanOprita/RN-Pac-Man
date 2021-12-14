@@ -1,6 +1,6 @@
 from Models.PacManModel import PacManModel
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, Flatten
 from hyperparameters import input_size, number_actions, input_shape
 
 

@@ -46,7 +46,7 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
 
             strategy.after_action()
             if done:
-                print("Episode finished after {} timesteps".format(t + 1))
+                print("Episode finished after {} timesteps".format(i_episode + 1))
                 break
         strategy.end_of_episode()
         print(f'The total reward was {reward}')
