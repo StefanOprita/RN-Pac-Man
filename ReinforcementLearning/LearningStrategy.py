@@ -4,9 +4,12 @@ from Models.PacManModel import PacManModel
 class LearningStrategy:
     def __init__(self):
         self.model = None
+        self.target_model = None
 
     def set_model(self, model: PacManModel):
         self.model = model
+        self.target_model = model.__class__()
+        self.target_model.model.set_weights(self.model.model.get_weights())
 
     def get_next_action(self, current_state):
         pass

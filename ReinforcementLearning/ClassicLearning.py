@@ -1,4 +1,5 @@
 import random
+from collections import deque
 
 import numpy as np
 
@@ -13,8 +14,8 @@ class ClassicLearning(LearningStrategy):
 
     def __init__(self):
         super().__init__()
-        self.records = list()
         self.max_records = 10000
+        self.records = deque(maxlen=self.max_records)
         self.gamma = 0.9
         self.batch_size = 128
         self.epsilon = 1
@@ -26,14 +27,12 @@ class ClassicLearning(LearningStrategy):
             return random.randint(0, 8)
 
         print('omg we doing something')
-        reshaped = tf.expand_dims(current_state, axis=0)
+        reshaped = current_state.reshape(1, current_state.shape[0])
         predict = self.model.model.predict(reshaped)
         return np.argmax(predict)
 
     def add_record(self, old_state, action, reward, new_state):
         self.records.append((old_state, action, reward, new_state))
-        if len(self.records) > self.max_records:
-            self.records.pop(0)
 
     def after_action(self):
         self.__reduce_epsilon()

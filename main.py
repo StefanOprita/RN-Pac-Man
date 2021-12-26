@@ -8,7 +8,7 @@ from ReinforcementLearning.LearningStrategy import LearningStrategy
 from ReinforcementLearning.ClassicLearning import ClassicLearning
 
 import tensorflow as tf
-
+tf.compat.v1.disable_eager_execution()
 
 def repeat_upsample(rgb_array, k=1, repeat_times=1):
     # repeat kinda crashes if k/repeat_times are zero
@@ -21,7 +21,7 @@ def repeat_upsample(rgb_array, k=1, repeat_times=1):
     return np.repeat(np.repeat(rgb_array, k, axis=0), repeat_times, axis=1)
 
 
-def train_model(env, model: PacManModel, strategy: LearningStrategy):
+def train_model(env, model: PacManModel, strategy: LearningStrategy, render_window: bool = False):
     strategy.set_model(model)
 
     viewer = rendering.SimpleImageViewer()
@@ -31,9 +31,10 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
         done = False
         total_reward = 0
         while not done:
-            rgb = env.render('rgb_array')
-            upscale = repeat_upsample(rgb, 4, 4)
-            viewer.imshow(upscale)
+            if render_window:
+                rgb = env.render('rgb_array')
+                upscale = repeat_upsample(rgb, 4, 4)
+                viewer.imshow(upscale)
 
             strategy.before_action()
 
@@ -53,7 +54,7 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
 
 
 def main():
-    env = gym.make('MsPacman-v0')
+    env = gym.make('MsPacman-ram-v4')
     env.reset()
     test_model = Model1()
     strategy = ClassicLearning()
