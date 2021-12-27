@@ -12,9 +12,9 @@ class Model1(PacManModel):
     def __initialize_model(self):
         self.model = Sequential()
 
-        self.model.add(Dense(32, input_dim=input_size, activation='relu'))
+        self.model.add(Dense(32, input_dim=input_size, activation='relu',kernel_initializer='he_uniform'))
+        self.model.add(Dense(64, activation='relu',kernel_initializer='he_uniform'))
+        self.model.add(Dense(number_actions,  activation='linear'))
         # self.model.add(Dense(100, activation='relu'))
-
-        self.model.add(Dense(number_actions))
 
         self.model.compile(optimizer='adam', loss='mean_squared_error')

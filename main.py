@@ -8,7 +8,9 @@ from ReinforcementLearning.LearningStrategy import LearningStrategy
 from ReinforcementLearning.ClassicLearning import ClassicLearning
 
 import tensorflow as tf
+
 tf.compat.v1.disable_eager_execution()
+
 
 def repeat_upsample(rgb_array, k=1, repeat_times=1):
     # repeat kinda crashes if k/repeat_times are zero
@@ -30,7 +32,10 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
         strategy.beginning_of_episode()
         done = False
         total_reward = 0
+        timesteps = 0
+        lives = 3
         while not done:
+            timesteps += 1
             if render_window:
                 rgb = env.render('rgb_array')
                 upscale = repeat_upsample(rgb, 4, 4)
@@ -43,14 +48,22 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
             old_state = np.copy(observation)
             observation, reward, done, info = env.step(action)
             total_reward += reward
-            strategy.add_record(old_state=old_state, action=action, reward=reward, new_state=observation)
 
-            strategy.after_action()
+            if info['lives'] < lives:
+                reward = -100
+                lives -= 1
+
+            strategy.add_record(old_state=old_state, action=action, reward=reward, new_state=observation, is_done=done)
+
+            if timesteps % 100 == 0:
+                strategy.update_target_network()
+
+            strategy.after_action(i_episode)
             if done:
-                print("Episode finished after {} timesteps".format(i_episode + 1))
+                print("Episode {}finished after {} timesteps".format(i_episode, timesteps + 1))
                 break
         strategy.end_of_episode()
-        print(f'The total reward was {reward}')
+        print(f'The total reward was {total_reward}')
 
 
 def main():
@@ -59,7 +72,7 @@ def main():
     test_model = Model1()
     strategy = ClassicLearning()
 
-    train_model(env, test_model, strategy)
+    train_model(env, test_model, strategy, True)
 
     env.close()
 

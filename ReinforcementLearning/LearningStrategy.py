@@ -14,7 +14,7 @@ class LearningStrategy:
     def get_next_action(self, current_state):
         pass
 
-    def add_record(self, old_state, action, reward, new_state):
+    def add_record(self, old_state, action, reward, new_state, is_done):
         pass
 
     def end_of_episode(self):
@@ -26,5 +26,8 @@ class LearningStrategy:
     def before_action(self):
         pass
 
-    def after_action(self):
+    def after_action(self, episode):
+        pass
+
+    def update_target_network(self):
         pass

@@ -1,4 +1,4 @@
-number_of_episodes = 100
+number_of_episodes = 1000
 
 input_shape = 128
 
