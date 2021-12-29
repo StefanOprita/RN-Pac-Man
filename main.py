@@ -3,6 +3,7 @@ import numpy as np
 from gym.envs.classic_control import rendering
 import hyperparameters as hp
 from Models.Model1 import Model1, PacManModel
+from Models.ModeluLuNenea import ModelulLuiNenea
 
 from ReinforcementLearning.LearningStrategy import LearningStrategy
 from ReinforcementLearning.ClassicLearning import ClassicLearning
@@ -47,16 +48,10 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
 
             old_state = np.copy(observation)
             observation, reward, done, info = env.step(action)
+
             total_reward += reward
-            #
-            if info['lives'] < lives:
-                reward = -100
-                lives -= 1
 
             strategy.add_record(old_state=old_state, action=action, reward=reward, new_state=observation, is_done=done)
-
-            if timesteps % 100 == 0:
-                strategy.update_target_network()
 
             strategy.after_action(i_episode)
             if done:
@@ -70,7 +65,7 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
 def main():
     env = gym.make('MsPacman-ram-v4')
     env.reset()
-    test_model = Model1()
+    test_model = ModelulLuiNenea()
     strategy = ClassicLearning()
 
     train_model(env, test_model, strategy, True)
