@@ -48,7 +48,7 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
             old_state = np.copy(observation)
             observation, reward, done, info = env.step(action)
             total_reward += reward
-
+            #
             if info['lives'] < lives:
                 reward = -100
                 lives -= 1
@@ -60,6 +60,7 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
 
             strategy.after_action(i_episode)
             if done:
+                print(f"Reward-ul cand moare este {reward}")
                 print("Episode {}finished after {} timesteps".format(i_episode, timesteps + 1))
                 break
         strategy.end_of_episode()
