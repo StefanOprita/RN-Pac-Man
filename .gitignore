@@ -129,3 +129,7 @@ dmypy.json
 .pyre/
 .idea/misc.xml
 .idea/RN-Pac-Man.iml
+*.h5
+*.pb
+*.data-00000-of-00001
+*.index

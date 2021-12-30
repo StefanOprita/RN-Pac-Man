@@ -1,5 +1,6 @@
+import json
 import random
-from collections import deque
+import pickle
 
 import numpy as np
 
@@ -14,19 +15,20 @@ class ClassicLearning(LearningStrategy):
 
     def __init__(self):
         super().__init__()
-        self.max_records = 10000
-        self.records = deque(maxlen=self.max_records)
-        self.gamma = 0.9
-        self.batch_size = 128
+        self.max_records = 2500
+        self.records = []
+        self.gamma = 0.99
+        self.batch_size = 64
         self.epsilon = 1
 
         self.frames = 0
-        self.frame_random_threshold = 1500
+        self.frame_random_threshold = 1000
 
         self.min_epsilon = 0.1
         self.max_epsilon = 1
-        self.decrease_rate_epsilon = 0.0001
-        self.learning_rate = 0.001
+        self.decrease_rate_epsilon = 0.9999
+        self.learning_rate = 0.0001
+        self.update_target_steps = 10000
 
     def get_next_action(self, current_state):
         chance = random.random()
@@ -39,6 +41,8 @@ class ClassicLearning(LearningStrategy):
 
     def add_record(self, old_state, action, reward, new_state, is_done):
         self.records.append((old_state, action, reward, new_state, is_done))
+        if len(self.records) > self.max_records:
+            self.records = self.records[1:]
 
     def after_action(self, episode):
         # self.__reduce_epsilon(episode)
@@ -47,11 +51,12 @@ class ClassicLearning(LearningStrategy):
         #     self.__train_model()
         self.frames += 1
         if self.frames >= self.frame_random_threshold:
-            self.epsilon = self.min_epsilon
+            if self.epsilon > self.min_epsilon:
+                self.epsilon *= self.decrease_rate_epsilon
 
-        if self.frames % 4 == 0 and self.frames >= self.frame_random_threshold:
+        if len(self.records) >= self.batch_size*2 and self.frames > self.frame_random_threshold:
             self.__train_model()
-        pass
+
 
     def __reduce_epsilon(self, episode):
         """
@@ -61,7 +66,6 @@ class ClassicLearning(LearningStrategy):
         self.epsilon = (1 - self.min_epsilon) * np.exp(-self.decrease_rate_epsilon * episode) + self.min_epsilon
 
     def __train_model(self):
-
         batch_size = random.randint(self.batch_size, self.batch_size * 2)
 
         chosen_records = random.sample(self.records, batch_size)
@@ -84,18 +88,25 @@ class ClassicLearning(LearningStrategy):
 
         new_states_reshaped = np.array(new_states)
         predictions = self.model.model.predict(new_states_reshaped)
-        max_qs = np.max(predictions, axis=1)
+        max_qs = np.amax(predictions, axis=1)
 
         predictions = self.model.model.predict(states)
 
         for index, action in enumerate(actions):
             if not done:
-                predictions[index, action] += rewards[index] + self.learning_rate * \
-                                              (self.gamma * max_qs[index] - predictions[index, action])
+                predictions[index, action] = rewards[index] + (self.gamma * max_qs[index])
             else:
-                predictions[index, action] += rewards[index]
+                predictions[index, action] = rewards[index]
 
         return predictions
+
+    def serialize(self, episode):
+        with open(f"info\\episode_records_{episode}", "wb") as file:
+            pickle.dump(self.records, file, 0)
+
+        with open(f"configs\\episode_config_{episode}.txt", "w") as file:
+            file.write(f"{self.epsilon} {self.frames}")
+
 
     def update_target_network(self):
         pass

@@ -2,7 +2,7 @@ import gym
 import numpy as np
 from gym.envs.classic_control import rendering
 import hyperparameters as hp
-from Models.Model1 import Model1, PacManModel
+from Models.Model1 import PacManModel
 from Models.ModeluLuNenea import ModelulLuiNenea
 
 from ReinforcementLearning.LearningStrategy import LearningStrategy
@@ -31,10 +31,19 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
     for i_episode in range(hp.number_of_episodes):
         observation = env.reset()
         strategy.beginning_of_episode()
+
         done = False
         total_reward = 0
+        score = 0
         timesteps = 0
         lives = 3
+
+        ep_frame_number = 0
+        while ep_frame_number < 258:
+            observation, _, _, _ = env.step(0)
+
+            ep_frame_number = float(env.ale.getEpisodeFrameNumber())
+
         while not done:
             timesteps += 1
             if render_window:
@@ -45,9 +54,13 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
             strategy.before_action()
 
             action = strategy.get_next_action(observation)
-
             old_state = np.copy(observation)
+
             observation, reward, done, info = env.step(action)
+            score += reward
+            if info['lives'] < lives:
+                reward = -300
+                lives -= 1
 
             total_reward += reward
 
@@ -55,11 +68,17 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
 
             strategy.after_action(i_episode)
             if done:
-                print(f"Reward-ul cand moare este {reward}")
                 print("Episode {}finished after {} timesteps".format(i_episode, timesteps + 1))
                 break
         strategy.end_of_episode()
-        print(f'The total reward was {total_reward}')
+
+        if i_episode % 50 == 0:
+            strategy.model.model.save_weights(f"mspacman\\{i_episode}-pacman.h5")
+            strategy.model.model.save(f'mspacman_models\\{i_episode}.model')
+            strategy.serialize(i_episode)
+
+
+        print(f'The total reward was {total_reward} . The score was {score}')
 
 
 def main():
@@ -67,7 +86,6 @@ def main():
     env.reset()
     test_model = ModelulLuiNenea()
     strategy = ClassicLearning()
-
     train_model(env, test_model, strategy, True)
 
     env.close()
