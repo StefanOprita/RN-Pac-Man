@@ -3,7 +3,8 @@ import numpy as np
 from gym.envs.classic_control import rendering
 import hyperparameters as hp
 from Models.Model1 import PacManModel
-from Models.ModeluLuNenea import ModelulLuiNenea
+from Models.ModelMare import ModelMare
+from Models.ModelMic import ModelMic
 
 from ReinforcementLearning.LearningStrategy import LearningStrategy
 from ReinforcementLearning.ClassicLearning import ClassicLearning
@@ -61,6 +62,10 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
             if info['lives'] < lives:
                 reward = -300
                 lives -= 1
+            if reward == 0:
+                reward = -1.5
+            if reward > 10:
+                reward = 10
 
             total_reward += reward
 
@@ -73,8 +78,8 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
         strategy.end_of_episode()
 
         if i_episode % 50 == 0:
-            strategy.model.model.save_weights(f"mspacman\\{i_episode}-beta-pacman.h5")
-            strategy.model.model.save(f'mspacman_models\\{i_episode}-beta.model')
+            strategy.model.model.save_weights(f"mspacman\\{i_episode}-gamma-pacman.h5")
+            strategy.model.model.save(f'mspacman_models\\{i_episode}-gamma.model')
             strategy.serialize(i_episode)
 
 
@@ -84,10 +89,10 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
 def main():
     env = gym.make('MsPacman-ram-v4')
     env.reset()
-    test_model = ModelulLuiNenea()
-    test_model.model = tf.keras.models.load_model("mspacman_models\\450.model")
+    test_model = ModelMare()
+    # test_model.model = tf.keras.models.load_model("mspacman_models\\400-beta.model")
     strategy = ClassicLearning()
-    strategy.load_info("450")
+    # strategy.load_info("400-beta")
     train_model(env, test_model, strategy, True)
 
     env.close()

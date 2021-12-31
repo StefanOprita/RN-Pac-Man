@@ -15,10 +15,10 @@ class ClassicLearning(LearningStrategy):
 
     def __init__(self):
         super().__init__()
-        self.max_records = 2500
+        self.max_records = 5000
         self.records = []
-        self.gamma = 0.99
-        self.batch_size = 64
+        self.gamma = 0.9
+        self.batch_size = 128
         self.epsilon = 1
 
         self.frames = 0
@@ -26,8 +26,8 @@ class ClassicLearning(LearningStrategy):
 
         self.min_epsilon = 0.15
         self.max_epsilon = 1
-        self.decrease_rate_epsilon = 0.9999
-        self.learning_rate = 0.0001
+        self.decrease_rate_epsilon = 0.99999
+        self.learning_rate = 0.05
         self.update_target_steps = 10000
 
     def get_next_action(self, current_state):
@@ -63,7 +63,7 @@ class ClassicLearning(LearningStrategy):
         self.epsilon = (1 - self.min_epsilon) * np.exp(-self.decrease_rate_epsilon * episode) + self.min_epsilon
 
     def __train_model(self):
-        batch_size = random.randint(self.batch_size, self.batch_size * 2)
+        batch_size = self.batch_size
 
         chosen_records = random.sample(self.records, batch_size)
 
@@ -91,9 +91,9 @@ class ClassicLearning(LearningStrategy):
 
         for index, action in enumerate(actions):
             if not done:
-                predictions[index, action] = rewards[index] + (self.gamma * max_qs[index])
+                predictions[index, action] += self.learning_rate * (rewards[index] + self.gamma * max_qs[index] - predictions[index, action])
             else:
-                predictions[index, action] = rewards[index]
+                predictions[index, action] += self.learning_rate * rewards[index]
 
         return predictions
 
@@ -107,10 +107,10 @@ class ClassicLearning(LearningStrategy):
             self.frames = int(info[1])
 
     def serialize(self, episode):
-        with open(f"info\\episode_records_{episode}-beta", "wb") as file:
+        with open(f"info\\episode_records_{episode}-ModelMare", "wb") as file:
             pickle.dump(self.records, file, 0)
 
-        with open(f"configs\\episode_config_{episode}.txt-beta", "w") as file:
+        with open(f"configs\\episode_config_{episode}-ModelMare.txt", "w") as file:
             file.write(f"{self.epsilon} {self.frames}")
 
 

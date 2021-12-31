@@ -10,9 +10,9 @@ from hyperparameters import input_size, number_actions
 from tensorflow.keras.optimizers import RMSprop
 
 
-class ModelulLuiNenea(PacManModel):
+class ModelMic(PacManModel):
     def __init__(self):
-        super(ModelulLuiNenea, self).__init__()
+        super(ModelMic, self).__init__()
         self.__initialize_model()
 
     def __initialize_model(self):

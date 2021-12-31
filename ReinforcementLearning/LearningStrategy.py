@@ -31,3 +31,6 @@ class LearningStrategy:
 
     def update_target_network(self):
         pass
+
+    def serialize(self, episode):
+        pass
