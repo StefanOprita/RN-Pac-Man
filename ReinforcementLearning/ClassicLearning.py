@@ -24,7 +24,7 @@ class ClassicLearning(LearningStrategy):
         self.frames = 0
         self.frame_random_threshold = 1000
 
-        self.min_epsilon = 0.1
+        self.min_epsilon = 0.15
         self.max_epsilon = 1
         self.decrease_rate_epsilon = 0.9999
         self.learning_rate = 0.0001
@@ -32,6 +32,7 @@ class ClassicLearning(LearningStrategy):
 
     def get_next_action(self, current_state):
         chance = random.random()
+        self.epsilon = 0.15
         if chance < self.epsilon:
             return random.randint(0, 8)
 
@@ -45,10 +46,6 @@ class ClassicLearning(LearningStrategy):
             self.records = self.records[1:]
 
     def after_action(self, episode):
-        # self.__reduce_epsilon(episode)
-
-        # if len(self.records) >= self.batch_size * 2:
-        #     self.__train_model()
         self.frames += 1
         if self.frames >= self.frame_random_threshold:
             if self.epsilon > self.min_epsilon:
@@ -100,11 +97,20 @@ class ClassicLearning(LearningStrategy):
 
         return predictions
 
+    def load_info(self, episode):
+        with open(f"info\\episode_records_{episode}", "rb") as file:
+            self.records = pickle.load(file)
+
+        with open(f"configs\episode_config_{episode}.txt") as file:
+            info = file.read().split()
+            self.epsilon = float(info[0])
+            self.frames = int(info[1])
+
     def serialize(self, episode):
-        with open(f"info\\episode_records_{episode}", "wb") as file:
+        with open(f"info\\episode_records_{episode}-beta", "wb") as file:
             pickle.dump(self.records, file, 0)
 
-        with open(f"configs\\episode_config_{episode}.txt", "w") as file:
+        with open(f"configs\\episode_config_{episode}.txt-beta", "w") as file:
             file.write(f"{self.epsilon} {self.frames}")
 
 

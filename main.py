@@ -73,8 +73,8 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy, render_wind
         strategy.end_of_episode()
 
         if i_episode % 50 == 0:
-            strategy.model.model.save_weights(f"mspacman\\{i_episode}-pacman.h5")
-            strategy.model.model.save(f'mspacman_models\\{i_episode}.model')
+            strategy.model.model.save_weights(f"mspacman\\{i_episode}-beta-pacman.h5")
+            strategy.model.model.save(f'mspacman_models\\{i_episode}-beta.model')
             strategy.serialize(i_episode)
 
 
@@ -85,7 +85,9 @@ def main():
     env = gym.make('MsPacman-ram-v4')
     env.reset()
     test_model = ModelulLuiNenea()
+    test_model.model = tf.keras.models.load_model("mspacman_models\\450.model")
     strategy = ClassicLearning()
+    strategy.load_info("450")
     train_model(env, test_model, strategy, True)
 
     env.close()
