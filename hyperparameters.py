@@ -4,4 +4,4 @@ input_shape = 128
 
 input_size = 128
 
-number_actions = 9
+number_actions = 4

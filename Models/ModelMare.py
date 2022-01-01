@@ -17,20 +17,8 @@ class ModelMare(PacManModel):
         self.model = Sequential()
 
         self.model.add(Dense(256, input_dim=input_size, activation='relu', kernel_initializer='he_uniform'))
-        # self.model.add(Dropout(0.8))
         self.model.add(Dense(128, activation='relu', kernel_initializer='he_uniform'))
-        # self.model.add(Dropout(0.8))
         self.model.add(Dense(64, activation='relu', kernel_initializer='he_uniform'))
-        # self.model.add(Dropout(0.8))
-        # self.model.add(Dense(64, activation='relu', kernel_initializer='he_uniform'))
-        # self.model.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         self.model.add(Dense(9, activation='linear', kernel_initializer='he_uniform'))
 
         self.model.compile(optimizer=Adam(0.001), loss='mse')
-
-        # self.model.add(Dense(32, input_dim=input_size, activation='relu', kernel_initializer='he_uniform'))
-        # self.model.add(Dense(64, activation='relu', kernel_initializer='he_uniform'))
-        # self.model.add(Dense(number_actions,  activation='linear'))
-        # # self.model.add(Dense(100, activation='relu'))
-        #
-        # self.model.compile(optimizer='adam', loss='mean_squared_error')

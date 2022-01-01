@@ -18,27 +18,26 @@ class ClassicLearning(LearningStrategy):
         self.max_records = 5000
         self.records = []
         self.gamma = 0.9
-        self.batch_size = 128
+        self.batch_size = 64
         self.epsilon = 1
 
         self.frames = 0
         self.frame_random_threshold = 1000
 
-        self.min_epsilon = 0.15
+        self.min_epsilon = 0.125
         self.max_epsilon = 1
-        self.decrease_rate_epsilon = 0.99999
+        self.decrease_rate_epsilon = 0.999995
         self.learning_rate = 0.05
-        self.update_target_steps = 10000
+        self.update_target_steps = 100
 
     def get_next_action(self, current_state):
         chance = random.random()
-        self.epsilon = 0.15
         if chance < self.epsilon:
-            return random.randint(0, 8)
+            return random.randint(1, 4)
 
         reshaped = current_state.reshape(1, current_state.shape[0])
         predict = self.model.model.predict(reshaped)
-        return np.argmax(predict)
+        return np.argmax(predict) + 1
 
     def add_record(self, old_state, action, reward, new_state, is_done):
         self.records.append((old_state, action, reward, new_state, is_done))
@@ -53,6 +52,9 @@ class ClassicLearning(LearningStrategy):
 
         if len(self.records) >= self.batch_size*2 and self.frames > self.frame_random_threshold:
             self.__train_model()
+
+        if self.frames > self.update_target_steps:
+            self.update_target_network()
 
 
     def __reduce_epsilon(self, episode):
@@ -84,7 +86,7 @@ class ClassicLearning(LearningStrategy):
     def __get_outputs(self, states, actions, rewards, new_states, done):
 
         new_states_reshaped = np.array(new_states)
-        predictions = self.model.model.predict(new_states_reshaped)
+        predictions = self.target_model.model.predict(new_states_reshaped)
         max_qs = np.amax(predictions, axis=1)
 
         predictions = self.model.model.predict(states)
@@ -107,13 +109,12 @@ class ClassicLearning(LearningStrategy):
             self.frames = int(info[1])
 
     def serialize(self, episode):
-        with open(f"info\\episode_records_{episode}-ModelMare", "wb") as file:
+        with open(f"info\\episode_records_{episode}-ModelMic-OmicronX", "wb") as file:
             pickle.dump(self.records, file, 0)
 
-        with open(f"configs\\episode_config_{episode}-ModelMare.txt", "w") as file:
+        with open(f"configs\\episode_config_{episode}-ModelMic-OmicronX.txt", "w") as file:
             file.write(f"{self.epsilon} {self.frames}")
 
 
     def update_target_network(self):
-        pass
-        # self.target_model.model.set_weights(self.model.model.get_weights())
+        self.target_model.model.set_weights(self.model.model.get_weights())

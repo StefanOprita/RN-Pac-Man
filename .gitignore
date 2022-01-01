@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+configs/
+info/
 
 # C extensions
 *.so
@@ -133,3 +135,4 @@ dmypy.json
 *.pb
 *.data-00000-of-00001
 *.index
+example.py
