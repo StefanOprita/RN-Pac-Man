@@ -25,3 +25,6 @@ class LearningStrategy:
 
     def after_action(self):
         pass
+
+    def serialize(self, episode):
+        pass

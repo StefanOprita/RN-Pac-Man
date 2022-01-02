@@ -10,12 +10,10 @@ from ReinforcementLearning.LearningStrategy import LearningStrategy
 import tensorflow as tf
 
 import cv2
+import pickle
 
 
 class ConvDQN(LearningStrategy):
-    """
-    The learning method presented in the 8th course
-    """
 
     def __init__(self):
         super().__init__()
@@ -25,16 +23,14 @@ class ConvDQN(LearningStrategy):
 
         self.nb_frames_stacked = 4
 
-
-
         self.online_model = self.__generate_model()
 
         self.target_model = self.__generate_model()
 
-        self.max_records = 10000
+        self.max_records = 5000
         self.gamma = 0.9
-        self.batch_size = 128
-        self.epsilon = 0
+        self.batch_size = 64
+        self.epsilon = 1
         self.min_epsilon = 0.1
 
         self.learning_rate = 0.05
@@ -42,25 +38,48 @@ class ConvDQN(LearningStrategy):
 
         self.stacked_frames = list()
 
-        self.update_target_network_rate = 10
+        self.update_target_network_rate = 100
 
         self.train_step = 0
+
+        self.frames = 0
+        self.frame_random_threshold = 1000
+
+        self.steps_to_train = 15
+        self.steps_to_train_waiting = 0
 
     def get_next_action(self, current_state):
         chance = random.random()
         current_state = self.__modify_image(current_state)
         self.__add_to_stacked_list(current_state)
+
         if chance < self.epsilon or len(self.stacked_frames) != self.nb_frames_stacked:
             return random.randint(0, 3) + 1
-        reshaped = np.array(self.stacked_frames)
-        reshaped = np.reshape(reshaped, (84, 80, 4))
+        reshaped = self.__stack_frames(self.stacked_frames)
         reshaped = tf.expand_dims(reshaped, axis=0)
-        predict = self.online_model.predict(reshaped)
+        predict = self.online_model(reshaped)
 
         return np.argmax(predict) + 1
 
-    def add_record(self, old_state, action, reward, new_state):
-        self.records.append((old_state, action, reward, new_state))
+    def add_record(self, old_state, action, reward, new_state, is_done):
+        # self.records.append((old_state, action, reward, new_state))
+        if len(self.stacked_frames) != self.nb_frames_stacked:
+            return
+
+        old_stacked = self.__stack_frames(self.stacked_frames)
+
+
+        new_stacked = self.stacked_frames[:]
+
+        new_state = self.__modify_image(new_state)
+        new_stacked.append(new_state)
+        new_stacked.pop(0)
+
+        new_stacked = self.__stack_frames(new_stacked)
+        # new_stacked = tf.expand_dims(new_stacked, axis=0)
+
+        self.records.append((old_stacked, action, reward, new_stacked, is_done))
+
         if len(self.records) > self.max_records:
             self.records.pop(0)
 
@@ -68,47 +87,56 @@ class ConvDQN(LearningStrategy):
         self.__reduce_epsilon()
 
         if len(self.records) >= self.batch_size * 2:
-            pass
-            # self.__train_model()
+            self.steps_to_train_waiting += 1
+            if self.steps_to_train_waiting % self.steps_to_train == 0:
+                self.__train_model()
 
     def __reduce_epsilon(self):
         """
         Made this into a function in case we decide to make some more complicated things in here
         :return:
         """
+        self.frames += 1
+        if self.frames < self.frame_random_threshold:
+            return
+
         self.epsilon *= self.decrease_rate_epsilon
         if self.epsilon < self.min_epsilon:
             self.epsilon = self.min_epsilon
 
     def __train_model(self):
         chosen_records = random.sample(self.records, self.batch_size)
-        states, actions, rewards, new_states = zip(*chosen_records)
+        states, actions, rewards, new_states, done = zip(*chosen_records)
         states = list(states)
         actions = list(actions)
         rewards = list(rewards)
         new_states = list(new_states)
+        done = list(done)
 
         inputs = np.array(states)
 
-        outputs = self.__get_outputs(inputs, actions, rewards, new_states)
+        outputs = self.__get_outputs(inputs, actions, rewards, new_states, done)
 
         # i'm not sure it here it should be epochs=1
-        self.model.model.fit(inputs, outputs, batch_size=self.batch_size // 8, epochs=1)
+        self.online_model.fit(inputs, outputs, batch_size=self.batch_size // 8, epochs=1, verbose=0)
 
         self.train_step += 1
         if self.train_step >= self.update_target_network_rate:
             self.target_model.set_weights(self.online_model.get_weights())
 
-    def __get_outputs(self, states, actions, rewards, new_states):
+    def __get_outputs(self, states, actions, rewards, new_states, done):
 
         new_states_reshaped = np.array(new_states)
-        predictions = self.model.model.predict(new_states_reshaped)
+        predictions = self.target_model.predict(new_states_reshaped)
         max_qs = np.max(predictions, axis=1)
 
-        predictions = self.model.model.predict(states)
+        predictions = self.online_model.predict(states)
 
         for index, action in enumerate(actions):
-            predictions[index, action] = rewards[index] + max_qs[index]
+            if not done[index]:
+                predictions[index, action - 1] = rewards[index] + self.gamma * max_qs[index]
+            else:
+                predictions[index, action - 1] = rewards[index]
 
         return predictions
 
@@ -139,3 +167,16 @@ class ConvDQN(LearningStrategy):
         img = img.astype('int8')  # saves memory
         grey = np.dot(img[..., :3], [0.299, 0.587, 0.114])
         return grey
+
+    def __stack_frames(self, stacked_frames):
+        return np.dstack(tuple(stacked_frames))
+
+    def serialize(self, episode):
+        self.online_model.save(f'mspacman_models\\{episode}-online')
+        self.target_model.save(f'mspacman_models\\{episode}-target')
+
+        with open(f"info\\episode_records_{episode}-ModelMic-OmicronX", "wb") as file:
+            pickle.dump(self.records, file, 0)
+
+        with open(f"configs\\episode_config_{episode}-ModelMic-OmicronX.txt", "w") as file:
+            file.write(f"{self.epsilon} {self.frames}")
