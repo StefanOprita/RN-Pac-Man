@@ -3,6 +3,7 @@ import numpy as np
 from gym.envs.classic_control import rendering
 import hyperparameters as hp
 from Models.Model1 import Model1, PacManModel
+from ReinforcementLearning.ConvDQN import ConvDQN
 
 from ReinforcementLearning.LearningStrategy import LearningStrategy
 from ReinforcementLearning.ClassicLearning import ClassicLearning
@@ -27,6 +28,8 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
     viewer = rendering.SimpleImageViewer()
     for i_episode in range(hp.number_of_episodes):
         observation = env.reset()
+
+
         strategy.beginning_of_episode()
         done = False
         total_reward = 0
@@ -40,6 +43,7 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
             action = strategy.get_next_action(observation)
 
             old_state = np.copy(observation)
+            print(f"actiunea e {action}")
             observation, reward, done, info = env.step(action)
             total_reward += reward
             strategy.add_record(old_state=old_state, action=action, reward=reward, new_state=observation)
@@ -56,7 +60,7 @@ def main():
     env = gym.make('MsPacman-v0')
     env.reset()
     test_model = Model1()
-    strategy = ClassicLearning()
+    strategy = ConvDQN()
 
     train_model(env, test_model, strategy)
 
