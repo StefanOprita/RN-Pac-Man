@@ -6,13 +6,14 @@ from gym.envs.classic_control import rendering
 import hyperparameters as hp
 from Models.Model1 import Model1, PacManModel
 from ReinforcementLearning.ConvDQN import ConvDQN
+from ReinforcementLearning.ConvDQNModifiesImage import ConvDQNModifiesImage
 
 from ReinforcementLearning.LearningStrategy import LearningStrategy
 from ReinforcementLearning.ClassicLearning import ClassicLearning
 
 import tensorflow as tf
 from statistics import mean, stdev
-
+import tensorflow
 def repeat_upsample(rgb_array, k=1, repeat_times=1):
     # repeat kinda crashes if k/repeat_times are zero
     if k <= 0 or repeat_times <= 0:
@@ -31,12 +32,15 @@ def skip_waiting_sequence(env):
 def train_model(env, model: PacManModel, strategy: LearningStrategy):
     strategy.set_model(model)
 
+    strategy.online_model = tensorflow.keras.models.load_model('mspacman_models\\3350-online')
+    strategy.target_model = tensorflow.keras.models.load_model('mspacman_models\\3350-online')
+
     viewer = rendering.SimpleImageViewer()
-    scores = deque(maxlen=10)
+    scores = deque(maxlen=30)
 
-    modify_action_timer = 3
+    modify_action_timer = 7
 
-    for i_episode in range(hp.number_of_episodes):
+    for i_episode in range(7801, hp.number_of_episodes):
         observation = env.reset()
 
         skip_waiting_sequence(env)
@@ -49,11 +53,14 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
         life_steps = 0
 
         last_action = 0
+
+        steps_without_reward = 0
         action = 0
+        total_reward_this_life = 0
         while not done:
-            rgb = env.render('rgb_array')
-            upscale = repeat_upsample(rgb, 4, 4)
-            viewer.imshow(upscale)
+            env.render()
+            # upscale = repeat_upsample(rgb, 4, 4)
+            # viewer.imshow(upscale)
 
             strategy.before_action()
 
@@ -67,23 +74,33 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
 
             score += reward
             if info['lives'] < lives:
-                reward = -300
+                reward = -30
                 lives -= 1
+                life_steps = 0
                 skip_waiting_sequence(env)
+                total_reward_this_life = 0
 
             if reward == 0:
-                reward = -1.5
-                if action + last_action == 5:
-                    reward = -3
+                steps_without_reward += 1
+                if steps_without_reward % 6:
+                    reward = -0.005
+                # if action + last_action == 5:
+                #     reward = -0.05
+                #     pass
 
-            elif reward > 10:
-                reward = 10
+            else:
+                steps_without_reward = 0
+                if reward == 10:
+                    reward = 10
+                else:
+                    reward = 0
 
             if done and lives != 0:
                 reward= 100
 
             last_action = action
             total_reward += reward
+            total_reward_this_life += reward
 
             strategy.add_record(old_state=old_state, action=action, reward=reward, new_state=observation, is_done=done)
 
