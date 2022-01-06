@@ -3,6 +3,7 @@ from Models.PacManModel import PacManModel
 
 class LearningStrategy:
     def __init__(self):
+        self.epsilon = None
         self.model = None
 
     def set_model(self, model: PacManModel):
@@ -11,7 +12,7 @@ class LearningStrategy:
     def get_next_action(self, current_state):
         pass
 
-    def add_record(self, old_state, action, reward, new_state):
+    def add_record(self, old_state, action, reward, new_state, is_done):
         pass
 
     def end_of_episode(self):

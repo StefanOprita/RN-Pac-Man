@@ -1,19 +1,22 @@
 from collections import deque
+from statistics import mean, stdev
 
 import gym
 import numpy as np
+import tensorflow
 from gym.envs.classic_control import rendering
-import hyperparameters as hp
-from Models.Model1 import Model1, PacManModel
-from ReinforcementLearning.ConvDQN import ConvDQN
-from ReinforcementLearning.ConvDQNModifiesImage import ConvDQNModifiesImage
 
+import hyperparameters as hp
+from Models.MainModel import MainModel, PacManModel
+from ReinforcementLearning.ConvDQN import ConvDQN
 from ReinforcementLearning.LearningStrategy import LearningStrategy
-from ReinforcementLearning.ClassicLearning import ClassicLearning
 
 import tensorflow as tf
-from statistics import mean, stdev
-import tensorflow
+config = tf.compat.v1.ConfigProto(
+        device_count = {'GPU': 0}
+    )
+sess = tf.compat.v1.Session(config=config)
+
 def repeat_upsample(rgb_array, k=1, repeat_times=1):
     # repeat kinda crashes if k/repeat_times are zero
     if k <= 0 or repeat_times <= 0:
@@ -29,16 +32,16 @@ def skip_waiting_sequence(env):
     for i in range(0, 15):
         _, _, _, _ = env.step(0)
 
+
 def train_model(env, model: PacManModel, strategy: LearningStrategy):
     strategy.set_model(model)
 
     strategy.online_model = tensorflow.keras.models.load_model('mspacman_models\\3350-online')
     strategy.target_model = tensorflow.keras.models.load_model('mspacman_models\\3350-online')
 
-    viewer = rendering.SimpleImageViewer()
     scores = deque(maxlen=30)
 
-    modify_action_timer = 7
+    modify_action_timer = 3
 
     for i_episode in range(7801, hp.number_of_episodes):
         observation = env.reset()
@@ -52,15 +55,11 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
         score = 0
         life_steps = 0
 
-        last_action = 0
-
         steps_without_reward = 0
         action = 0
         total_reward_this_life = 0
         while not done:
             env.render()
-            # upscale = repeat_upsample(rgb, 4, 4)
-            # viewer.imshow(upscale)
 
             strategy.before_action()
 
@@ -84,10 +83,6 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
                 steps_without_reward += 1
                 if steps_without_reward % 6:
                     reward = -0.005
-                # if action + last_action == 5:
-                #     reward = -0.05
-                #     pass
-
             else:
                 steps_without_reward = 0
                 if reward == 10:
@@ -96,9 +91,8 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
                     reward = 0
 
             if done and lives != 0:
-                reward= 100
+                reward = 100
 
-            last_action = action
             total_reward += reward
             total_reward_this_life += reward
 
@@ -122,15 +116,73 @@ def train_model(env, model: PacManModel, strategy: LearningStrategy):
             print()
 
 
+def test_model(env, strategy, model_name):
+    strategy.online_model = tensorflow.keras.models.load_model(f'mspacman_models\\{model_name}')
+    test_episodes = 1000
+
+    viewer = rendering.SimpleImageViewer()
+    scores = []
+
+    modify_action_timer = 3
+
+    for i_episode in range(test_episodes):
+        observation = env.reset()
+
+        skip_waiting_sequence(env)
+
+        done = False
+        total_reward = 0
+        score = 0
+
+        action = 0
+        life_steps = 0
+        while not done:
+            # rgb = env.render('rgb_array')
+            # upscale = repeat_upsample(rgb, 4, 4)
+            # viewer.imshow(upscale)
+
+            if life_steps % modify_action_timer == 0:
+                action = strategy.get_next_action(observation)
+
+            observation, reward, done, info = env.step(action)
+
+            score += reward
+            life_steps += 1
+
+            total_reward += reward
+
+            if done:
+                print("Episode {} finished".format(i_episode))
+                break
+
+        scores.append(score)
+        print(
+            f'The total reward was {total_reward} . The score was {score} .Eps: {strategy.epsilon}')
+        print(f'Min :  {min(scores)} . Max : {max(scores)} . Mean : {mean(scores)}')
+
+    print(f"Minimum : {min(scores)}")
+    print(f"Maximum : {max(scores)}")
+    print(f"Mean : {mean(scores)}")
+    print(f"Stdev : {stdev(scores)}")
+
+    with open(f"scores/scores_{model_name}", "w") as file:
+        for score in scores:
+            file.write(f"{score}\n")
+
+
 def main():
-    env = gym.make('MsPacman-v0')
-    env.reset()
-    test_model = Model1()
-    strategy = ConvDQN()
+    # train_model(env, training_model, strategy)
+    models_to_test = ['8900-online', '3350-online']
 
-    train_model(env, test_model, strategy)
+    for model in models_to_test:
+        env = gym.make('MsPacman-v0')
+        env.reset()
 
-    env.close()
+        strategy = ConvDQN()
+        strategy.epsilon = 0.1
+        test_model(env, strategy, model)
+
+        env.close()
 
 
 if __name__ == '__main__':

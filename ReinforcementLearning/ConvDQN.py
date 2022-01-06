@@ -1,16 +1,13 @@
 import random
 
 import numpy as np
+import tensorflow as tf
 from keras import Sequential
 from keras.layers import Conv2D, Dense, Flatten
-from tensorflow.keras.optimizers import Adam, RMSprop
+from tensorflow.keras.optimizers import RMSprop
 
 from Models.PacManModel import PacManModel
 from ReinforcementLearning.LearningStrategy import LearningStrategy
-import tensorflow as tf
-
-import cv2
-import pickle
 
 
 class ConvDQN(LearningStrategy):
@@ -62,12 +59,10 @@ class ConvDQN(LearningStrategy):
         return np.argmax(predict) + 1
 
     def add_record(self, old_state, action, reward, new_state, is_done):
-        # self.records.append((old_state, action, reward, new_state))
         if len(self.stacked_frames) != self.nb_frames_stacked:
             return
 
         old_stacked = self.__stack_frames(self.stacked_frames)
-
 
         new_stacked = self.stacked_frames[:]
 
@@ -128,7 +123,6 @@ class ConvDQN(LearningStrategy):
             self.target_model.set_weights(self.online_model.get_weights())
 
     def __get_outputs(self, states, actions, rewards, new_states, done):
-
         new_states_reshaped = np.array(new_states)
         predictions = self.target_model.predict(new_states_reshaped)
         max_qs = np.max(predictions, axis=1)
@@ -164,14 +158,16 @@ class ConvDQN(LearningStrategy):
         if len(self.stacked_frames) > self.nb_frames_stacked:
             self.stacked_frames.pop(0)
 
-    def __modify_image(self, current_state):
+    @staticmethod
+    def __modify_image(current_state):
         img = current_state[1:168:2, :: 2, :]  # crop and downsize
         img = img - 128  # normalize between -128 and 127
         img = img.astype('int8')  # saves memory
         grey = np.dot(img[..., :3], [0.299, 0.587, 0.114])
         return grey
 
-    def __stack_frames(self, stacked_frames):
+    @staticmethod
+    def __stack_frames(stacked_frames):
         return np.dstack(tuple(stacked_frames))
 
     def serialize(self, episode):

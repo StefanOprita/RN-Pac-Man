@@ -1,16 +1,13 @@
 import random
 
 import numpy as np
+import tensorflow as tf
 from keras import Sequential
 from keras.layers import Conv2D, Dense, Flatten
-from tensorflow.keras.optimizers import Adam, RMSprop
+from tensorflow.keras.optimizers import RMSprop
 
 from Models.PacManModel import PacManModel
 from ReinforcementLearning.LearningStrategy import LearningStrategy
-import tensorflow as tf
-
-import cv2
-import pickle
 
 
 def simplify_image(image):
@@ -303,11 +300,13 @@ class ConvDQNModifiesImage(LearningStrategy):
         if len(self.stacked_frames) > self.nb_frames_stacked:
             self.stacked_frames.pop(0)
 
-    def __modify_image(self, current_state):
+    @staticmethod
+    def __modify_image(current_state):
         print('a')
         return simplify_image(current_state)
 
-    def __stack_frames(self, stacked_frames):
+    @staticmethod
+    def __stack_frames(stacked_frames):
         return np.dstack(tuple(stacked_frames))
 
     def serialize(self, episode):
