@@ -1,4 +1,3 @@
-
 class PacManModel:
 
     def __init__(self):

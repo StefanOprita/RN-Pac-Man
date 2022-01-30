@@ -1,12 +1,13 @@
-from Models.PacManModel import PacManModel
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Flatten
-from hyperparameters import input_size, number_actions, input_shape
+from tensorflow.keras.models import Sequential
+
+from Models.PacManModel import PacManModel
+from hyperparameters import number_actions, input_shape
 
 
-class Model1(PacManModel):
+class MainModel(PacManModel):
     def __init__(self):
-        super(Model1, self).__init__()
+        super(MainModel, self).__init__()
         self.__initialize_model()
 
     def __initialize_model(self):

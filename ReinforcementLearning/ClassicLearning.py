@@ -30,7 +30,7 @@ class ClassicLearning(LearningStrategy):
         predict = self.model.model.predict(reshaped)
         return np.argmax(predict)
 
-    def add_record(self, old_state, action, reward, new_state):
+    def add_record(self, old_state, action, reward, new_state, is_done):
         self.records.append((old_state, action, reward, new_state))
         if len(self.records) > self.max_records:
             self.records.pop(0)
